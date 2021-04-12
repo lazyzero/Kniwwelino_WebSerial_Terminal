@@ -41,6 +41,7 @@ div.row {
 }
 
 #log {
+    margin-top: 20px;
     padding-left: 8px;
     height: calc(100vh - 530px);
     max-width: 100%;

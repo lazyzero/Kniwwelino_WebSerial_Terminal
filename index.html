@@ -21,6 +21,7 @@
       <div class="row">
         <button class="btn btn-primary" id="SerialConnectButton" type="button" disabled>Connect</button>
         <button class="btn" id="SerialResetButton" type="button" disabled>Restart Kniwwelino</button>
+        <button class="btn" id="SerialidButton" type="button" disabled><i class="fa fa-external-link-alt" aria-hidden="true"></i> Add Kniwwelino to Platform</button>
         <button class="btn float-right" id="deleteWiFiModalButton" type="button" data-toggle="modal" data-target="#deleteWiFiModal" disabled>Delete stored WiFi Config</button>
       </div>
 
@@ -45,11 +46,14 @@
         </div>
       </div>
       <div class="row">
-        <button class="btn btn-primary float-right" id="saveWiFiButton" type="button" disabled>Save SSID on device</button>
+        <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input custom-switch " id="autoscrollSwitch" checked>
+          <label class="custom-control-label" for="autoscrollSwitch">auto-scroll</label>
+          <button class="btn btn-primary float-right" id="saveWiFiButton" type="button" disabled>Save SSID on device</button>
+        </div>
+        
       </div>
 
-
-      <br><br>
       <div id="log">
       </div>
 
@@ -96,7 +100,7 @@
 
 const log = document.getElementById('log');
 const maxLogLength = 100;
-const autoscroll = true;
+let autoscroll = true;
 
 const connectButton = document.getElementById ('SerialConnectButton');
 const resetButton = document.getElementById ('SerialResetButton');
@@ -106,14 +110,31 @@ const ssidSelect = document.getElementById ('ssidSelect');
 const inputPassword = document.getElementById('inputPassword');
 const hidePasswordButton = document.getElementById ('show_hide_password_button');
 const saveWiFiButton = document.getElementById('saveWiFiButton');
+const SerialidButton = document.getElementById('SerialidButton');
+const autoscrollSwitch = document.getElementById('autoscrollSwitch');
 
 let port;
 let wifiListObj = [];
+
+let kniwwelinoID = "";
+
+const filters = [ //1a86:7523
+  { usbVendorId: 0x1a86, usbProductId: 0x7523 }
+];
+
 
 if ('serial' in navigator) {
   resetButton.addEventListener('click', function () {
     if (port) {
       serialWrite("RESET\n");
+      SerialidButton.disabled = true;
+    }
+  });
+
+  SerialidButton.addEventListener('click', function () {
+    if (port) {
+      let url = "https://code.kniwwelino.lu/?add=" + kniwwelinoID;
+      window.open(url,'_blank');
     }
   });
 
@@ -145,6 +166,10 @@ if ('serial' in navigator) {
     }
   });
 
+  autoscrollSwitch.addEventListener('click', function() {
+    autoscroll = autoscrollSwitch.checked;
+  });
+
   saveWiFiButton.addEventListener('click', function() {
     if (port) {
       let pass = inputPassword.value;
@@ -164,6 +189,7 @@ if ('serial' in navigator) {
       document.getElementById('SerialResetButton').disabled = true;
       document.getElementById('deleteWiFiModalButton').disabled = true;
       document.getElementById('SerialListWifiButton').disabled = true;
+      SerialidButton.disabled = true;
       inputPassword.disabled = true;
       ssidSelect.disabled = true;
       saveWiFiButton.true;
@@ -198,7 +224,7 @@ async function serialWrite(data) {
 }
 
 async function getReader() {
-  port = await navigator.serial.requestPort({});
+  port = await navigator.serial.requestPort({filters});
 	await port.open({ baudRate: 115200 });
 
   connectButton.innerText = 'Disconnect';
@@ -211,6 +237,14 @@ async function getReader() {
   const appendStream = new WritableStream({
     write(chunk) {
       logMsg(chunk);
+
+      if (chunk.includes("ID=")) {
+        kniwwelinoID = chunk.match(/^ID=(?<id>(.*[0-9A-F]))$/gm)[0].replace("ID=","");
+        console.log(kniwwelinoID);
+        if (kniwwelinoID.length == 6) {
+          SerialidButton.disabled = false;
+        }
+      }
 
       if (chunk.includes("SSID list")) {
         recordWifiList = true;
