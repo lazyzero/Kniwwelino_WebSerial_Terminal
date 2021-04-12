@@ -1,0 +1,290 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Web based Serial Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+  </head>
+
+  <body>
+    
+    <div class="jumbotron jumbotron-fluid text-center">
+      <h1>Web based Serial Terminal <i class="bi bi-wifi-2"></i></h1>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <button class="btn btn-primary" id="SerialConnectButton" type="button" disabled>Connect</button>
+        <button class="btn" id="SerialResetButton" type="button" disabled>Restart Kniwwelino</button>
+        <button class="btn float-right" id="deleteWiFiModalButton" type="button" data-toggle="modal" data-target="#deleteWiFiModal" disabled>Delete stored WiFi Config</button>
+      </div>
+
+      <div class="form-group row">
+        <div class="input-group">
+          <label class="col-sm-2 col-form-label">SSID</label>
+          <select class="form-control" id="ssidSelect" style="font-family: wifi-font; font-size: 16px;" disabled>
+            <option selected>&#xe902; Press reload to scan WiFi</option>  
+          </select>
+          <div class="input-group-addon">
+            <button class="btn" id="SerialListWifiButton" type="button" disabled>&#128472;</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-group row">
+        <div class="input-group">
+          <label class="col-sm-2 col-form-label">Password</label>
+          <input type="password" class="form-control" id="inputPassword" disabled>
+          <div class="input-group-addon">
+            <button id="show_hide_password_button" class="btn" type="button"><i id="show_hide_password" class="fa fa-eye" aria-hidden="true"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary float-right" id="saveWiFiButton" type="button" disabled>Save SSID on device</button>
+      </div>
+
+
+      <br><br>
+      <div id="log">
+      </div>
+
+      
+      <div class="row">
+        <p> Source code: <a href=https://github.com/lazyzero/web-serial-terminal>https://github.com/lazyzero/web-serial-terminal</a> </p>
+      </div>
+    </div>
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="deleteWiFiModal" tabindex="-1" role="dialog" aria-labelledby="deleteWiFiModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteWiFiModalLabel">Delete WiFi Config</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Really delete the stored WiFi config?
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="SerialResetWifiConfigButton" class="btn btn-primary" data-dismiss="modal">Delete</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </body>
+
+<script>
+
+/*
+ * Web Serial API (Google Chrome)
+ *
+ * Useful information used to this implementation:
+ * https://github.com/svendahlstrand/web-serial-api/
+ * https://dev.to/unjavascripter/the-amazing-powers-of-the-web-web-serial-api-3ilc
+ *
+ */
+
+const log = document.getElementById('log');
+const maxLogLength = 100;
+const autoscroll = true;
+
+const connectButton = document.getElementById ('SerialConnectButton');
+const resetButton = document.getElementById ('SerialResetButton');
+const resetWiFiButton = document.getElementById ('SerialResetWifiConfigButton');
+const refreshWiFiButton = document.getElementById ('SerialListWifiButton');
+const ssidSelect = document.getElementById ('ssidSelect');
+const inputPassword = document.getElementById('inputPassword');
+const hidePasswordButton = document.getElementById ('show_hide_password_button');
+const saveWiFiButton = document.getElementById('saveWiFiButton');
+
+let port;
+let wifiListObj = [];
+
+if ('serial' in navigator) {
+  resetButton.addEventListener('click', function () {
+    if (port) {
+      serialWrite("RESET\n");
+    }
+  });
+
+  resetWiFiButton.addEventListener('click', function () {
+    if (port) {
+      serialWrite("WIFI_CLEAR\n");      
+    }
+  });
+
+  refreshWiFiButton.addEventListener('click', function () {
+    ssidSelect.disabled = true;
+    saveWiFiButton.disabled = true;
+    inputPassword.disabled = true;
+    if (port) {
+      serialWrite("WIFI_LIST\n");
+    }
+  });
+
+  hidePasswordButton.addEventListener('click', function () {
+    console.log("click");
+    if(inputPassword.getAttribute("type") == "text") {
+      inputPassword.setAttribute('type', 'password');
+      document.getElementById ('show_hide_password').classList.add( "fa-eye" );
+      document.getElementById ('show_hide_password').classList.remove( "fa-eye-slash" );
+    } else if(inputPassword.getAttribute("type") == "password") {
+      inputPassword.setAttribute('type', 'text');
+      document.getElementById ('show_hide_password').classList.remove( "fa-eye" );
+      document.getElementById ('show_hide_password').classList.add( "fa-eye-slash" );
+    }
+  });
+
+  saveWiFiButton.addEventListener('click', function() {
+    if (port) {
+      let pass = inputPassword.value;
+      let ssid = ssidSelect.value;
+      let request = "WIFI_ADD:"+ssid+"="+pass+"\n";
+      serialWrite(request);
+    }
+  });
+
+  connectButton.addEventListener('click', function () {
+    if (port) {
+      logMsg('Disconnected from Serial Port\n', 1);
+      port.close();
+      port = undefined;
+      connectButton.innerText = 'Connect';
+
+      document.getElementById('SerialResetButton').disabled = true;
+      document.getElementById('deleteWiFiModalButton').disabled = true;
+      document.getElementById('SerialListWifiButton').disabled = true;
+      inputPassword.disabled = true;
+      ssidSelect.disabled = true;
+      saveWiFiButton.true;
+    } else {
+      document.getElementById('SerialResetButton').disabled = false;
+      document.getElementById('deleteWiFiModalButton').disabled = false;
+      document.getElementById('SerialListWifiButton').disabled = false;
+      connectButton.innerText = 'Disconnect';
+      getReader();
+    }
+  });
+
+  connectButton.disabled = false;
+} else {
+  const error = document.createElement('p');
+  error.innerHTML = '<p>Support for Serial Web API not enabled. Please enable it using chrome://flags/ and enable Experimental Web Platform fetures</p>';
+}
+
+let lineBuffer = '';
+let latestValue = 0;
+
+async function serialWrite(data) {
+	encoder = new TextEncoder();
+	const dataArrayBuffer = encoder.encode(data);
+
+	if (port && port.writable) {
+		const writer = port.writable.getWriter();
+		writer.write(dataArrayBuffer);
+		//writer.releaseLock();
+    await writer.close();
+	}
+}
+
+async function getReader() {
+  port = await navigator.serial.requestPort({});
+	await port.open({ baudRate: 115200 });
+
+  connectButton.innerText = 'Disconnect';
+  logMsg('Connected using Web Serial API\n', 1);
+
+  let recordWifiList = false;
+  let wifiListReceived = false;
+  let wifiList = "";
+  
+  const appendStream = new WritableStream({
+    write(chunk) {
+      logMsg(chunk);
+
+      if (chunk.includes("SSID list")) {
+        recordWifiList = true;
+        wifiList = "";
+      }
+      if (recordWifiList) {
+        wifiList += chunk;
+        if (wifiList.includes("}]")) {
+          recordWifiList = false;
+          wifiListReceived = true;
+        }
+      }
+      if (wifiListReceived) {
+        wifiList = wifiList.match(/(\[.*\])/g)[0];
+        wifiListObj = JSON.parse(wifiList);
+        wifiListObj.sort(sortByProperty("rssi"));
+        console.log(wifiListObj);
+        
+        ssidSelect.innerHTML = "";
+        for(var i = 0; i < wifiListObj.length; i++) {
+          var opt = document.createElement('option');
+          let icon = '&#xe900; ';
+          if (wifiListObj[i].rssi > -65) {
+            icon = '&#xe902; ';
+          } else if (wifiListObj[i].rssi > -71) {
+            icon = '&#xe901; ';
+          }
+          opt.innerHTML = icon + wifiListObj[i].ssid;
+          opt.value = wifiListObj[i].ssid;
+          ssidSelect.appendChild(opt);
+        }
+        inputPassword.disabled = false;
+        ssidSelect.disabled = false;
+        saveWiFiButton.disabled = false;
+        wifiListReceived = false;
+      }
+    }
+  });
+
+  port.readable
+    .pipeThrough(new TextDecoderStream())
+    .pipeTo(appendStream);
+
+}
+
+function sortByProperty(property){  
+   return function(a,b){  
+      if(a[property] < b[property])  
+         return 1;  
+      else if(a[property] > b[property])  
+         return -1;  
+  
+      return 0;  
+   }  
+}
+
+function logMsg(text, color=0) {
+  if (color == 1) {
+    log.innerHTML += "<p style=\"color:red;\">" + text.replace(/(\n)/gm, "</p>");
+  } else {
+    log.innerHTML += text.replace(/(\n)/gm, "<br>");
+  }
+
+  // Remove old log content
+  if (log.textContent.split("\n").length > maxLogLength + 1) {
+    let logLines = log.innerHTML.replace(/(\n)/gm, "").split("<br>");
+    log.innerHTML = logLines.splice(-maxLogLength).join("<br>\n");
+  }
+
+  if (autoscroll) {
+    log.scrollTop = log.scrollHeight
+  }
+}
+</script>
+
+</html>
+

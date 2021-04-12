@@ -1,0 +1,64 @@
+@font-face {
+    font-family: 'wifi-font';
+    src:  url('fonts/wifi-font.eot?zfntna');
+    src:  url('fonts/wifi-font.eot?zfntna#iefix') format('embedded-opentype'),
+      url('fonts/wifi-font.ttf?zfntna') format('truetype'),
+      url('fonts/wifi-font.woff?zfntna') format('woff'),
+      url('fonts/wifi-font.svg?zfntna#wifi-font') format('svg');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+  }
+
+body {
+    font-size: 16px;
+}
+
+div.container-fluid {
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+div.row {
+    margin-right: 15px;
+    margin-left: 15px;
+    margin-bottom: 15px;
+    display: block;
+}
+
+#ssidSelect {
+    border: 1px solid transparent;
+    padding: 6px 12px;
+}
+
+.btn {
+    border-radius: 0px;
+    font-size: 16px;
+}
+
+.custom-select {
+    width: calc(20rem);
+}
+
+#log {
+    padding-left: 8px;
+    height: calc(100vh - 530px);
+    max-width: 100%;
+    font-family: 'Lucida Console', monospace;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 16px;
+    overflow-x: hidden;
+    overflow-x: auto;
+    transition : color 0.1s linear;
+    border: 2px solid #000;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    background-color: #000;
+    color: #cecece;
+}
+  
+#log::-webkit-scrollbar {
+    display: none;
+}
+
