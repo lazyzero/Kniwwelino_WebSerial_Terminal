@@ -47,11 +47,11 @@
       </div>
       <div class="row">
         <div class="custom-control custom-switch">
-          <input type="checkbox" class="custom-control-input custom-switch " id="autoscrollSwitch" checked>
-          <label class="custom-control-label" for="autoscrollSwitch">auto-scroll</label>
+          <input type="checkbox" class="custom-control-input custom-switch align-middle" id="autoscrollSwitch" checked>
+          <label class="custom-control-label align-middle" for="autoscrollSwitch" style="padding-right: 15px;">auto-scroll</label>
+          <button class="btn btn-primary" id="clearButton" type="button" disabled>Clear Log</button>
           <button class="btn btn-primary float-right" id="saveWiFiButton" type="button" disabled>Save SSID on device</button>
         </div>
-        
       </div>
 
       <div id="log">
@@ -99,7 +99,7 @@
  */
 
 const log = document.getElementById('log');
-const maxLogLength = 100;
+const maxLogLength = 300;
 let autoscroll = true;
 
 const connectButton = document.getElementById ('SerialConnectButton');
@@ -112,6 +112,7 @@ const hidePasswordButton = document.getElementById ('show_hide_password_button')
 const saveWiFiButton = document.getElementById('saveWiFiButton');
 const SerialidButton = document.getElementById('SerialidButton');
 const autoscrollSwitch = document.getElementById('autoscrollSwitch');
+const clearButton = document.getElementById('clearButton');
 
 let port;
 let wifiListObj = [];
@@ -170,6 +171,10 @@ if ('serial' in navigator) {
     autoscroll = autoscrollSwitch.checked;
   });
 
+  clearButton.addEventListener('click', function() {
+    log.innerHTML = "";
+  });
+
   saveWiFiButton.addEventListener('click', function() {
     if (port) {
       let pass = inputPassword.value;
@@ -192,11 +197,13 @@ if ('serial' in navigator) {
       SerialidButton.disabled = true;
       inputPassword.disabled = true;
       ssidSelect.disabled = true;
-      saveWiFiButton.true;
+      saveWiFiButton.disabled = true;
+      clearButton.disabled = true;
     } else {
       document.getElementById('SerialResetButton').disabled = false;
       document.getElementById('deleteWiFiModalButton').disabled = false;
       document.getElementById('SerialListWifiButton').disabled = false;
+      clearButton.disabled = false;
       connectButton.innerText = 'Disconnect';
       getReader();
     }
