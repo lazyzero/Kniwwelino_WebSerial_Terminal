@@ -263,15 +263,36 @@ async function getReader() {
       }
       if (recordWifiList) {
         wifiList += chunk;
-        if (wifiList.includes("}]")) {
-          recordWifiList = false;
-          wifiListReceived = true;
+        if (wifiList.includes("[{")) {
+          if (wifiList.includes("}]")) {
+            recordWifiList = false;
+            wifiListReceived = true;
+          }
+        } else {
+          if (wifiList.includes("}")) {
+            recordWifiList = false;
+            wifiListReceived = true;
+          }
         }
       }
+
       if (wifiListReceived) {
-        wifiList = wifiList.match(/(\[.*\])/g)[0];
-        wifiListObj = JSON.parse(wifiList);
-        wifiListObj.sort(sortByProperty("rssi"));
+        if (wifiList.match(/(\[.*\])/g)) {
+          console.log("New WiFi List detected.");
+          wifiList = wifiList.match(/(\[.*\])/g)[0];
+          wifiListObj = JSON.parse(wifiList);
+          wifiListObj.sort(sortByProperty("rssi"));
+        } else {
+          console.log("Old WiFi List detected.")
+          wifiListObj = [];
+          wifiList = wifiList.match(/(\{.*\})/g)[0];
+          wifiList = wifiList.replace("{", "").replace("}", "");
+          wifiList = wifiList.split(",");
+          wifiList.forEach(e => {
+            let f = {"ssid": e, "rssi": -100};
+            if (!wifiListObj.includes(f)) wifiListObj.push(f);
+          });
+        }       
         console.log(wifiListObj);
         
         ssidSelect.innerHTML = "";
