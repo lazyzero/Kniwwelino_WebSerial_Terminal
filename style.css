@@ -14,6 +14,10 @@ body {
     font-size: 16px;
 }
 
+.jumbotron {
+    padding: 2rem 2rem;
+}
+
 div.container-fluid {
     padding-left: 0px;
     padding-right: 0px;
@@ -43,7 +47,7 @@ div.row {
 #log {
     margin-top: 20px;
     padding-left: 8px;
-    height: calc(100vh - 530px);
+    height: calc(100vh - 450px);
     max-width: 100%;
     font-family: 'Lucida Console', monospace;
     font-style: normal;
