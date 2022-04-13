@@ -133,7 +133,18 @@ const filters = [ //1a86:7523
 if ('serial' in navigator) {
   resetButton.addEventListener('click', function () {
     if (port) {
-      serialWrite("RESET\n");
+
+    await port.setSignals({
+      dataTerminalReady: false,
+      requestToSend: true,
+    });
+    await port.setSignals({
+      dataTerminalReady: false,
+      requestToSend: false,
+    });
+
+
+      //serialWrite("RESET\n");
       SerialidButton.disabled = true;
     }
   });
